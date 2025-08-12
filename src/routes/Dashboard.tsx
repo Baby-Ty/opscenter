@@ -50,41 +50,24 @@ export default function Dashboard() {
       <section className="grid gap-4 lg:grid-cols-3">
         <Panel title="Change Requests" to="/rfc" actionLabel="New RFC" icon={GitPullRequest}>
           <CompactTable
-            columns={["RFC", "Title", "Account", "Priority", "Status", "Date"]}
-            rows={rfcsReal.map((r) => [r.id, r.title, r.account, r.priority, r.status, r.date])}
+            columns={["RFC", "Title", "Client"]}
+            rows={rfcsReal.map((r) => [r.id, r.title, r.account])}
             onRowClick={(index) => handleItemClick('rfc', rfcsReal[index])}
           />
         </Panel>
 
         <Panel title="Root Cause" to="/rca" actionLabel="New RCA" icon={BrainCog}>
           <CompactTable
-            columns={["RCA ID", "Title", "Client", "Owner", "Status", "Last update", "Actions open"]}
-            rows={rcasReal.map((r) => [
-              r.id,
-              r.title,
-              r.client,
-              r.owner,
-              r.status,
-              (r.updatedAt || '').slice(0, 10),
-              (r.actions || []).filter((a: any) => a.status !== 'Done').length,
-            ])}
+            columns={["RCA", "Title", "Client"]}
+            rows={rcasReal.map((r) => [r.id, r.title, r.client])}
             onRowClick={(index) => handleItemClick('rca', rcasReal[index])}
           />
         </Panel>
 
         <Panel title="Risk Register" to="/risks" actionLabel="New Risk" icon={ShieldAlert}>
           <CompactTable
-            columns={["Category", "Title/Ticket", "Client", "Impact", "Status", "Priority", "Owner", "Date"]}
-            rows={risksReal.map((r) => [
-              r.category,
-              `${r.title}${r.ticket ? ` — ${r.ticket}` : ''}`,
-              r.client,
-              r.impact,
-              r.status,
-              r.priority,
-              r.owner,
-              r.date,
-            ])}
+            columns={["Title", "Priority", "Client"]}
+            rows={risksReal.map((r) => [r.title, r.priority, r.client])}
             onRowClick={(index) => handleItemClick('risk', risksReal[index])}
           />
         </Panel>
