@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 0.5rem;
+}
+
+/* Enhanced typography and spacing */
+html {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+body {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enhanced focus ring with modern style */
+.focus-ring:focus-visible {
+  outline: 2px solid rgb(99 102 241);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Button system - clear hierarchy and usage */
+.btn {
+  @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium focus-ring transition-all duration-200 shadow-sm hover:shadow;
+}
+
+/* Use for important form actions: Save, Submit, Approve, etc. */
+.btn.primary {
+  @apply border-transparent bg-gradient-to-r from-indigo-600 to-indigo-500 text-white hover:from-indigo-700 hover:to-indigo-600 shadow-md hover:shadow-lg;
+}
+
+/* Use for destructive actions: Delete, Remove, etc. */
+.btn.danger {
+  @apply border-transparent bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-700 hover:to-rose-600 shadow-md hover:shadow-lg;
+}
+
+/* Use for secondary/neutral actions: New RFC/RCA/Risk, View board, etc. */
+.btn.secondary,
+.btn.neutral {
+  @apply border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700;
+  background-image: none !important;
+}
+
+/* 
+  BUTTON USAGE GUIDE:
+  - .btn.primary: Important form actions (Save, Submit, Approve)
+  - .btn.secondary/.btn.neutral: Page actions (New RFC/RCA/Risk, View board)
+  - .btn.danger: Destructive actions (Delete, Remove)
+  - .btn: Default utility actions (Cancel, Export, Clear)
+*/
+
+/* Small button variant */
+.btn.sm {
+  @apply px-3 py-1.5 text-xs rounded-md shadow-none hover:shadow-none;
+}
+.btn.primary.sm, .btn.danger.sm, .btn.secondary.sm, .btn.neutral.sm {
+  @apply shadow-none hover:shadow;
+}
+
+/* Enhanced input styles */
+.input {
+  @apply w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus-ring transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500;
+}
+
+/* Card component styles */
+.card {
+  @apply rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+/* Enhanced table styles */
+.table-container {
+  @apply rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm;
+}
+
+/* Badge styles */
+.badge {
+  @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+}
+
+/* Panel styles for dashboard */
+.panel {
+  @apply rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200;
+}
+
+/* Glass morphism for header */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass.dark {
+  background: rgba(15, 23, 42, 0.8);
+}
+
