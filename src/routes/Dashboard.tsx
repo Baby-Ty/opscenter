@@ -4,14 +4,20 @@ import { Link } from 'react-router-dom';
 import { seed } from '../seed/data';
 import { loadRfcs } from '../lib/storage';
 import { rfcSeeds } from '../lib/seed';
+import { loadRcas } from '../lib/rcaStorage';
+import { rcaSeeds } from '../lib/rcaSeed';
+import { loadRisks } from '../lib/riskStorage';
+import { riskSeeds } from '../lib/riskSeed';
 import type React from 'react';
 import { useState } from 'react';
 
 type ModalType = 'rfc' | 'rca' | 'risk' | 'client' | null;
 
 export default function Dashboard() {
-  const { kpis, rcas, risks, icClients } = seed;
+  const { kpis, icClients } = seed;
   const rfcsReal = (loadRfcs() ?? rfcSeeds);
+  const rcasReal = (loadRcas() ?? rcaSeeds);
+  const risksReal = (loadRisks() ?? riskSeeds);
   const [selectedModal, setSelectedModal] = useState<ModalType>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
@@ -44,25 +50,42 @@ export default function Dashboard() {
       <section className="grid gap-4 lg:grid-cols-3">
         <Panel title="Change Requests" to="/rfc" actionLabel="New RFC" icon={GitPullRequest}>
           <CompactTable
-            columns={["RFC", "Title", "Status"]}
-            rows={rfcsReal.map((r) => [r.id, r.title, r.status])}
+            columns={["RFC", "Title", "Account", "Priority", "Status", "Date"]}
+            rows={rfcsReal.map((r) => [r.id, r.title, r.account, r.priority, r.status, r.date])}
             onRowClick={(index) => handleItemClick('rfc', rfcsReal[index])}
           />
         </Panel>
 
         <Panel title="Root Cause" to="/rca" actionLabel="New RCA" icon={BrainCog}>
           <CompactTable
-            columns={["RCA", "Incident", "Owner"]}
-            rows={rcas.map((r) => [r.id, r.incident, r.owner])}
-            onRowClick={(index) => handleItemClick('rca', rcas[index])}
+            columns={["RCA ID", "Title", "Client", "Owner", "Status", "Last update", "Actions open"]}
+            rows={rcasReal.map((r) => [
+              r.id,
+              r.title,
+              r.client,
+              r.owner,
+              r.status,
+              (r.updatedAt || '').slice(0, 10),
+              (r.actions || []).filter((a: any) => a.status !== 'Done').length,
+            ])}
+            onRowClick={(index) => handleItemClick('rca', rcasReal[index])}
           />
         </Panel>
 
         <Panel title="Risk Register" to="/risks" actionLabel="New Risk" icon={ShieldAlert}>
           <CompactTable
-            columns={["Risk", "Title", "Severity"]}
-            rows={risks.map((r) => [r.id, r.title, r.severity])}
-            onRowClick={(index) => handleItemClick('risk', risks[index])}
+            columns={["Category", "Title/Ticket", "Client", "Impact", "Status", "Priority", "Owner", "Date"]}
+            rows={risksReal.map((r) => [
+              r.category,
+              `${r.title}${r.ticket ? ` — ${r.ticket}` : ''}`,
+              r.client,
+              r.impact,
+              r.status,
+              r.priority,
+              r.owner,
+              r.date,
+            ])}
+            onRowClick={(index) => handleItemClick('risk', risksReal[index])}
           />
         </Panel>
       </section>
