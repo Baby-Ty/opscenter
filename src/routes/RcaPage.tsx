@@ -90,15 +90,8 @@ export default function RcaPage() {
     setItems((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'Closed', closedAt: new Date().toISOString() } : r)));
   }
 
-  function exportJson() {
-    const data = JSON.stringify(filtered, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rca-export.json';
-    a.click();
-    URL.revokeObjectURL(url);
+  function exportPdf() {
+    window.print();
   }
 
   const selected = items.find((r) => r.id === selectedId) ?? null;
@@ -114,7 +107,7 @@ export default function RcaPage() {
           <p className="text-sm text-zinc-500">Analyze and action incidents to prevent repeats.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="btn" onClick={exportJson}><Download className="h-4 w-4" /> Export JSON</button>
+          <button className="btn" onClick={exportPdf}><Download className="h-4 w-4" /> Export PDF</button>
                      <button className="btn secondary" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" /> New RCA
           </button>

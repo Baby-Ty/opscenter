@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import { LayoutDashboard, GitPullRequest, ShieldAlert, BrainCog, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, GitPullRequest, ShieldAlert, BrainCog, AlertTriangle, BookOpenCheck } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/risks', label: 'Risk Register', icon: ShieldAlert },
   { to: '/rca', label: 'Root Cause', icon: BrainCog },
   { to: '/ic-caution', label: 'IC Caution', icon: AlertTriangle },
+  { to: '/knowledge-capture', label: 'Knowledge Capture', icon: BookOpenCheck },
 ];
 
 export default function Sidebar() {

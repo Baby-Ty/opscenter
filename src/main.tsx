@@ -8,6 +8,7 @@ import RfcPage from './routes/RfcPage';
 import RisksPage from './routes/RisksPage';
 import RcaPage from './routes/RcaPage';
 import IcCautionPage from './routes/IcCautionPage';
+import KnowledgeCapturePage from './routes/KnowledgeCapturePage';
 
 const router = createHashRouter([
   {
@@ -19,6 +20,7 @@ const router = createHashRouter([
       { path: 'risks', element: <RisksPage /> },
       { path: 'rca', element: <RcaPage /> },
       { path: 'ic-caution', element: <IcCautionPage /> },
+      { path: 'knowledge-capture', element: <KnowledgeCapturePage /> },
     ],
   },
 ]);
