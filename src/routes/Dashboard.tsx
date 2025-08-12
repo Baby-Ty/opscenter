@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { GitPullRequest, ShieldAlert, BrainCog, AlertTriangle, Plus, X, Calendar, User, Clock, Flag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { GitPullRequest, ShieldAlert, BrainCog, AlertTriangle, Plus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { seed } from '../seed/data';
 import { loadRfcs } from '../lib/storage';
 import { rfcSeeds } from '../lib/seed';
@@ -11,25 +11,12 @@ import { riskSeeds } from '../lib/riskSeed';
 import type React from 'react';
 import { useState } from 'react';
 
-type ModalType = 'rfc' | 'rca' | 'risk' | 'client' | null;
-
 export default function Dashboard() {
   const { kpis, icClients } = seed;
   const rfcsReal = (loadRfcs() ?? rfcSeeds);
   const rcasReal = (loadRcas() ?? rcaSeeds);
   const risksReal = (loadRisks() ?? riskSeeds);
-  const [selectedModal, setSelectedModal] = useState<ModalType>(null);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-
-  const handleItemClick = (type: ModalType, item: any) => {
-    setSelectedModal(type);
-    setSelectedItem(item);
-  };
-
-  const closeModal = () => {
-    setSelectedModal(null);
-    setSelectedItem(null);
-  };
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
@@ -52,7 +39,7 @@ export default function Dashboard() {
           <CompactTable
             columns={["RFC", "Title", "Client"]}
             rows={rfcsReal.map((r) => [r.id, r.title, r.account])}
-            onRowClick={(index) => handleItemClick('rfc', rfcsReal[index])}
+            onRowClick={(index) => navigate(`/rfc?id=${encodeURIComponent(rfcsReal[index].id)}`)}
           />
         </Panel>
 
@@ -60,7 +47,7 @@ export default function Dashboard() {
           <CompactTable
             columns={["RCA", "Title", "Client"]}
             rows={rcasReal.map((r) => [r.id, r.title, r.client])}
-            onRowClick={(index) => handleItemClick('rca', rcasReal[index])}
+            onRowClick={(index) => navigate(`/rca?id=${encodeURIComponent(rcasReal[index].id)}`)}
           />
         </Panel>
 
@@ -68,7 +55,7 @@ export default function Dashboard() {
           <CompactTable
             columns={["Title", "Priority", "Client"]}
             rows={risksReal.map((r) => [r.title, r.priority, r.client])}
-            onRowClick={(index) => handleItemClick('risk', risksReal[index])}
+            onRowClick={(index) => navigate(`/risks?id=${encodeURIComponent(risksReal[index].id)}`)}
           />
         </Panel>
       </section>
@@ -103,7 +90,7 @@ export default function Dashboard() {
                 <tr 
                   key={c.id} 
                   className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                  onClick={() => handleItemClick('client', c)}
+                  onClick={() => navigate(`/ic-caution?client=${encodeURIComponent(c.id)}`)}
                 >
                   <Td className="font-medium">{c.name}</Td>
                   <Td>{c.reason}</Td>
@@ -117,14 +104,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Modals */}
-      {selectedModal && selectedItem && (
-        <ItemModal 
-          type={selectedModal} 
-          item={selectedItem} 
-          onClose={closeModal} 
-        />
-      )}
+      {/* Clicking rows now navigates directly to detail pages */}
     </div>
   );
 }
@@ -199,144 +179,6 @@ function CompactTable({ columns, rows, onRowClick }: { columns: string[]; rows: 
 function Th({ children }: { children: React.ReactNode }) { return <th className="text-left px-4 py-3 font-medium">{children}</th>; }
 function Td({ children, className = '', colSpan }: { children: React.ReactNode; className?: string; colSpan?: number }) { return <td colSpan={colSpan} className={`px-4 py-3 ${className}`}>{children}</td>; }
 
-function ItemModal({ type, item, onClose }: { type: ModalType; item: any; onClose: () => void }) {
-  const getModalContent = () => {
-    switch (type) {
-      case 'rfc':
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <GitPullRequest className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{item.title}</h3>
-                <p className="text-sm text-slate-500">RFC {item.id}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <InfoItem icon={User} label="Requested By" value={item.requestedBy} />
-              <InfoItem icon={Flag} label="Status" value={item.status} />
-              <InfoItem icon={Calendar} label="Target Date" value={item.targetDate} />
-              <InfoItem icon={Clock} label="Created" value={item.createdAt || 'N/A'} />
-            </div>
-          </div>
-        );
-      case 'rca':
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <BrainCog className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{item.incident}</h3>
-                <p className="text-sm text-slate-500">RCA {item.id}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <InfoItem icon={User} label="Owner" value={item.owner} />
-              <InfoItem icon={Flag} label="Status" value={item.status} />
-              <InfoItem icon={Calendar} label="Created" value={item.createdAt} />
-            </div>
-          </div>
-        );
-      case 'risk':
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <ShieldAlert className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{item.title}</h3>
-                <p className="text-sm text-slate-500">Risk {item.id}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <InfoItem icon={User} label="Owner" value={item.owner} />
-              <InfoItem icon={Flag} label="Severity" value={item.severity} />
-              <InfoItem icon={Calendar} label="Created" value={item.createdAt} />
-            </div>
-          </div>
-        );
-      case 'client':
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{item.name}</h3>
-                <p className="text-sm text-slate-500">Client {item.id}</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <InfoItem icon={Flag} label="Caution Reason" value={item.reason} />
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div 
-      role="dialog" 
-      aria-modal="true" 
-      className="fixed inset-0 z-50 grid place-items-center p-4"
-      onKeyDown={(e) => e.key === 'Escape' && onClose()}
-    >
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Item Details</h2>
-          <button 
-            className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors" 
-            onClick={onClose} 
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        {getModalContent()}
-        <div className="flex justify-end gap-3 mt-6">
-          <button className="btn secondary" onClick={onClose}>
-            Close
-          </button>
-          <Link 
-            to={`/${
-              type === 'client'
-                ? `ic-caution?client=${encodeURIComponent(item.id)}`
-                : type === 'rca'
-                ? `rca?id=${encodeURIComponent(item.id)}`
-                : type === 'risk'
-                ? `risks?id=${encodeURIComponent(item.id)}`
-                : `rfc?id=${encodeURIComponent(item.id)}`
-            }`}
-            className="btn primary"
-            onClick={onClose}
-          >
-            View Details
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function InfoItem({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <Icon className="h-4 w-4 text-slate-500" />
-      <div>
-        <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>
-        <div className="font-medium text-slate-900 dark:text-slate-100">{value}</div>
-      </div>
-    </div>
-  );
-}
+// Item modal removed; rows navigate directly
 
 
