@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Download } from 'lucide-react';
+import { Plus, X, Download, ArrowLeft } from 'lucide-react';
 import type { RiskItem, RiskImpact, RiskLikelihood, RiskPriority, RiskStatus, RiskMitigationItem } from '../lib/riskTypes';
 import { riskSeeds } from '../lib/riskSeed';
 import { loadRisks, saveRisks, nextRiskId } from '../lib/riskStorage';
@@ -14,16 +14,20 @@ export default function RisksPageContent() {
   const [items, setItems] = useState<RiskItem[]>(() => loadRisks() ?? riskSeeds);
   const [filters, setFilters] = useState<Filters>({ severity: 'All', status: 'All', owner: '' });
   const [sort, setSort] = useState<SortState>({ key: 'date', dir: 'desc' });
-  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<'dashboard' | 'detail'>('dashboard');
   const [createOpen, setCreateOpen] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => saveRisks(items), [items]);
 
-  // Open drawer when navigated with ?id=RISK-xxx
+  // Open detail when navigated with ?id=RISK-xxx
   useEffect(() => {
     const id = searchParams.get('id');
-    if (id) setDrawerId(id);
+    if (id) {
+      setSelectedId(id);
+      setView('detail');
+    }
   }, [searchParams]);
 
   const filtered = useMemo(() => {
@@ -57,14 +61,15 @@ export default function RisksPageContent() {
   function onCreate(draft: Omit<RiskItem, 'id'>) {
     const id = nextRiskId(items);
     setItems([{ id, ...draft }, ...items]);
-    setDrawerId(id);
+    setSelectedId(id);
+    setView('detail');
   }
   function onUpdate(updated: RiskItem) { setItems((prev) => prev.map((r) => (r.id === updated.id ? updated : r))); }
-  function onDelete(id: string) { if (!confirm('Delete this risk?')) return; setItems((prev) => prev.filter((r) => r.id !== id)); setDrawerId(null); }
+  function onDelete(id: string) { if (!confirm('Delete this risk?')) return; setItems((prev) => prev.filter((r) => r.id !== id)); setSelectedId(null); setView('dashboard'); }
 
   function exportPdf() { window.print(); }
 
-  const selected = items.find((r) => r.id === drawerId) ?? null;
+  const selected = items.find((r) => r.id === selectedId) ?? null;
   const ownerOptions = useMemo(() => Array.from(new Set(items.map((i) => i.owner))), [items]);
 
   return (
@@ -89,59 +94,77 @@ export default function RisksPageContent() {
         <KpiCard label="Mitigations in progress" value={kpis.mitigationsInProgress} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <section>
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 space-y-3">
-            <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-300">Filters</h2>
-            <select className="input" value={filters.severity} onChange={(e) => setFilters({ ...filters, severity: e.target.value as Filters['severity'] })} aria-label="Severity">
-              {(['All', 'Low', 'Medium', 'High', 'Critical'] as const).map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select className="input" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value as Filters['status'] })} aria-label="Status">
-              {(['All', 'Open', 'In Review', 'Mitigating', 'Closed'] as const).map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select className="input" value={filters.owner} onChange={(e) => setFilters({ ...filters, owner: e.target.value })} aria-label="Owner">
-              <option value="">All owners</option>
-              {ownerOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-            <button className="btn" onClick={() => setFilters({ severity: 'All', status: 'All', owner: '' })}>Clear</button>
+      {view === 'dashboard' && (
+        <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+          <section>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 space-y-3">
+              <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-300">Filters</h2>
+              <select className="input" value={filters.severity} onChange={(e) => setFilters({ ...filters, severity: e.target.value as Filters['severity'] })} aria-label="Severity">
+                {(['All', 'Low', 'Medium', 'High', 'Critical'] as const).map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select className="input" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value as Filters['status'] })} aria-label="Status">
+                {(['All', 'Open', 'In Review', 'Mitigating', 'Closed'] as const).map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select className="input" value={filters.owner} onChange={(e) => setFilters({ ...filters, owner: e.target.value })} aria-label="Owner">
+                <option value="">All owners</option>
+                {ownerOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+              <button className="btn" onClick={() => setFilters({ severity: 'All', status: 'All', owner: '' })}>Clear</button>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 dark:bg-zinc-900">
+                <tr>
+                  <Th>Category</Th>
+                  <Th>Title/Ticket</Th>
+                  <Th>Client</Th>
+                  <Th>Impact</Th>
+                  <Th>Status</Th>
+                  <Th>Priority</Th>
+                  <Th>Owner</Th>
+                  <Th>Date</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((r) => (
+                  <tr key={r.id} className="border-t border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 cursor-pointer" onClick={() => { setSelectedId(r.id); setView('detail'); }}>
+                    <Td>{r.category}</Td>
+                    <Td className="font-medium">{r.title}{r.ticket ? ` — ${r.ticket}` : ''}</Td>
+                    <Td>{r.client}</Td>
+                    <Td><SeverityBadge impact={r.impact}>{r.impact}</SeverityBadge></Td>
+                    <Td>{r.status}</Td>
+                    <Td>{r.priority}</Td>
+                    <Td>{r.owner}</Td>
+                    <Td className="tabular-nums">{r.date}</Td>
+                  </tr>
+                ))}
+                {sorted.length === 0 && (
+                  <tr><Td colSpan={8} className="text-center text-zinc-500 py-8">No results</Td></tr>
+                )}
+              </tbody>
+            </table>
+          </section>
+        </div>
+      )}
+
+      {view === 'detail' && selected && (
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <button onClick={() => setView('dashboard')} className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 focus-ring rounded-md px-2 py-1 inline-flex items-center gap-1 transition-colors">
+                <ArrowLeft className="h-4 w-4" /> Back
+              </button>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{selected.title}</h2>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <RiskDetail item={selected} onUpdate={onUpdate} onDelete={() => onDelete(selected.id)} />
           </div>
         </section>
-
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 dark:bg-zinc-900">
-              <tr>
-                <Th>Category</Th>
-                <Th>Title/Ticket</Th>
-                <Th>Client</Th>
-                <Th>Impact</Th>
-                <Th>Status</Th>
-                <Th>Priority</Th>
-                <Th>Owner</Th>
-                <Th>Date</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((r) => (
-                <tr key={r.id} className="border-t border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 cursor-pointer" onClick={() => setDrawerId(r.id)}>
-                  <Td>{r.category}</Td>
-                  <Td className="font-medium">{r.title}{r.ticket ? ` — ${r.ticket}` : ''}</Td>
-                  <Td>{r.client}</Td>
-                  <Td><SeverityBadge impact={r.impact}>{r.impact}</SeverityBadge></Td>
-                  <Td>{r.status}</Td>
-                  <Td>{r.priority}</Td>
-                  <Td>{r.owner}</Td>
-                  <Td className="tabular-nums">{r.date}</Td>
-                </tr>
-              ))}
-              {sorted.length === 0 && (
-                <tr><Td colSpan={8} className="text-center text-zinc-500 py-8">No results</Td></tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-
-      </div>
+      )}
 
       <AnimatePresence>
         {createOpen && (
@@ -151,13 +174,7 @@ export default function RisksPageContent() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {selected && (
-          <Drawer onClose={() => setDrawerId(null)}>
-            <RiskDrawer item={selected} onUpdate={onUpdate} onDelete={() => onDelete(selected.id)} />
-          </Drawer>
-        )}
-      </AnimatePresence>
+      {/* Detail view handled inline above */}
     </div>
   );
 }
@@ -189,16 +206,7 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
   );
 }
 
-function Drawer({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <motion.div role="dialog" aria-modal="true" className="fixed inset-0 z-50" onKeyDown={(e) => e.key === 'Escape' && onClose()} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <motion.div initial={{ x: 320 }} animate={{ x: 0 }} exit={{ x: 320 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }} className="absolute right-0 top-0 h-full w-full max-w-xl bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-xl p-4 overflow-auto">
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
+// Drawer removed in favor of inline detail view
 
 function SeverityBadge({ impact, children }: { impact: RiskImpact; children: React.ReactNode }) {
   const map: Record<RiskImpact, string> = {
@@ -277,7 +285,7 @@ function NewRiskForm({ onSubmit, onCancel }: { onSubmit: (draft: Omit<RiskItem, 
   );
 }
 
-function RiskDrawer({ item, onUpdate, onDelete }: { item: RiskItem; onUpdate: (r: RiskItem) => void; onDelete: () => void }) {
+function RiskDetail({ item, onUpdate, onDelete }: { item: RiskItem; onUpdate: (r: RiskItem) => void; onDelete: () => void }) {
   const [working, setWorking] = useState<RiskItem>(item);
   const [tab, setTab] = useState<'overview' | 'analysis' | 'mitigation'>('overview');
   useEffect(() => setWorking(item), [item]);

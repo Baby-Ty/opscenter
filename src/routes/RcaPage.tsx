@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Download, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, X, Download, ChevronUp, ChevronDown, ArrowLeft } from 'lucide-react';
 import type { RcaItem, RcaStatus, RcaActionItem } from '../lib/rcaTypes';
 import { rcaSeeds } from '../lib/rcaSeed';
 import { loadRcas, saveRcas, nextRcaId } from '../lib/rcaStorage';
@@ -13,17 +13,21 @@ type SortState = { key: SortKey; dir: 'asc' | 'desc' };
 export default function RcaPage() {
   const [items, setItems] = useState<RcaItem[]>(() => loadRcas() ?? rcaSeeds);
   const [filters, setFilters] = useState<Filters>({ status: 'All', customer: '', owner: '' });
-  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<'dashboard' | 'detail'>('dashboard');
   const [createOpen, setCreateOpen] = useState(false);
   const [sort, setSort] = useState<SortState>({ key: 'updatedAt', dir: 'desc' });
   const [searchParams] = useSearchParams();
 
   useEffect(() => saveRcas(items), [items]);
 
-  // Open drawer when navigated with ?id=RCA-xxx
+  // Open detail when navigated with ?id=RCA-xxx
   useEffect(() => {
     const id = searchParams.get('id');
-    if (id) setDrawerId(id);
+    if (id) {
+      setSelectedId(id);
+      setView('detail');
+    }
   }, [searchParams]);
 
   const filtered = useMemo(() => {
@@ -67,7 +71,8 @@ export default function RcaPage() {
     const id = nextRcaId(items);
     const now = new Date().toISOString();
     setItems([{ id, createdAt: now, updatedAt: now, ...draft }, ...items]);
-    setDrawerId(id);
+    setSelectedId(id);
+    setView('detail');
   }
 
   function onUpdate(updated: RcaItem) {
@@ -77,7 +82,8 @@ export default function RcaPage() {
   function onDelete(id: string) {
     if (!confirm('Delete this RCA?')) return;
     setItems((prev) => prev.filter((r) => r.id !== id));
-    setDrawerId(null);
+    setSelectedId(null);
+    setView('dashboard');
   }
 
   function onCloseRca(id: string) {
@@ -95,7 +101,7 @@ export default function RcaPage() {
     URL.revokeObjectURL(url);
   }
 
-  const selected = items.find((r) => r.id === drawerId) ?? null;
+  const selected = items.find((r) => r.id === selectedId) ?? null;
 
   const customerOptions = useMemo(() => Array.from(new Set(items.map((i) => i.client))), [items]);
   const ownerOptions = useMemo(() => Array.from(new Set(items.map((i) => i.owner))), [items]);
@@ -122,63 +128,86 @@ export default function RcaPage() {
         <KpiCard label="Avg time to close (days)" value={kpis.avgCloseDays} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <section className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4">
-            <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-300 mb-3">Filters</h2>
-            <div className="space-y-3">
-              <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value as Filters['status'] })} className="input" aria-label="Status">
-                {(['All', 'Open', 'In analysis', 'Actioning', 'Closed'] as const).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <select value={filters.customer} onChange={(e) => setFilters({ ...filters, customer: e.target.value })} className="input" aria-label="Customer">
-                <option value="">All customers</option>
-                {customerOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select value={filters.owner} onChange={(e) => setFilters({ ...filters, owner: e.target.value })} className="input" aria-label="Owner">
-                <option value="">All owners</option>
-                {ownerOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-              <button className="btn" onClick={() => setFilters({ status: 'All', customer: '', owner: '' })}>Clear</button>
+      {view === 'dashboard' && (
+        <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4">
+              <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-300 mb-3">Filters</h2>
+              <div className="space-y-3">
+                <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value as Filters['status'] })} className="input" aria-label="Status">
+                  {(['All', 'Open', 'In analysis', 'Actioning', 'Closed'] as const).map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <select value={filters.customer} onChange={(e) => setFilters({ ...filters, customer: e.target.value })} className="input" aria-label="Customer">
+                  <option value="">All customers</option>
+                  {customerOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select value={filters.owner} onChange={(e) => setFilters({ ...filters, owner: e.target.value })} className="input" aria-label="Owner">
+                  <option value="">All owners</option>
+                  {ownerOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+                <button className="btn" onClick={() => setFilters({ status: 'All', customer: '', owner: '' })}>Clear</button>
+              </div>
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 dark:bg-zinc-900">
+                <tr>
+                  <SortableTh label="RCA ID" sortKey="id" sort={sort} setSort={setSort} />
+                  <SortableTh label="Title" sortKey="title" sort={sort} setSort={setSort} />
+                  <SortableTh label="Client" sortKey="client" sort={sort} setSort={setSort} />
+                  <SortableTh label="Owner" sortKey="owner" sort={sort} setSort={setSort} />
+                  <SortableTh label="Status" sortKey="status" sort={sort} setSort={setSort} />
+                  <SortableTh label="Last update" sortKey="updatedAt" sort={sort} setSort={setSort} />
+                  <SortableTh label="Actions open" sortKey="actionsOpen" sort={sort} setSort={setSort} />
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((r) => (
+                  <tr key={r.id} className="border-t border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 cursor-pointer" onClick={() => { setSelectedId(r.id); setView('detail'); }}>
+                    <Td>{r.id}</Td>
+                    <Td className="font-medium">{r.title}</Td>
+                    <Td>{r.client}</Td>
+                    <Td>{r.owner}</Td>
+                    <Td><Badge tone={r.status}>{r.status}</Badge></Td>
+                    <Td className="tabular-nums">{r.updatedAt.slice(0, 10)}</Td>
+                    <Td>{r.actions.filter((a) => a.status !== 'Done').length}</Td>
+                  </tr>
+                ))}
+                {sorted.length === 0 && (
+                  <tr>
+                    <Td colSpan={7} className="text-center text-zinc-500 py-8">No results</Td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </section>
+        </div>
+      )}
+
+      {view === 'detail' && selected && (
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <button onClick={() => setView('dashboard')} className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 focus-ring rounded-md px-2 py-1 inline-flex items-center gap-1 transition-colors">
+                <ArrowLeft className="h-4 w-4" /> Back
+              </button>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{selected.title}</h2>
+              <div className="flex items-center gap-2">
+                <Badge tone={selected.status}>{selected.status}</Badge>
+              </div>
+            </div>
+            <div className="flex items-center gap-2"></div>
+          </div>
+
+          <div className="space-y-4">
+            <RcaDetail item={selected} onUpdate={onUpdate} onDelete={() => onDelete(selected.id)} onCloseRca={() => onCloseRca(selected.id)} />
           </div>
         </section>
-
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 dark:bg-zinc-900">
-              <tr>
-                <SortableTh label="RCA ID" sortKey="id" sort={sort} setSort={setSort} />
-                <SortableTh label="Title" sortKey="title" sort={sort} setSort={setSort} />
-                <SortableTh label="Client" sortKey="client" sort={sort} setSort={setSort} />
-                <SortableTh label="Owner" sortKey="owner" sort={sort} setSort={setSort} />
-                <SortableTh label="Status" sortKey="status" sort={sort} setSort={setSort} />
-                <SortableTh label="Last update" sortKey="updatedAt" sort={sort} setSort={setSort} />
-                <SortableTh label="Actions open" sortKey="actionsOpen" sort={sort} setSort={setSort} />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((r) => (
-                <tr key={r.id} className="border-t border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 cursor-pointer" onClick={() => setDrawerId(r.id)}>
-                  <Td>{r.id}</Td>
-                  <Td className="font-medium">{r.title}</Td>
-                  <Td>{r.client}</Td>
-                  <Td>{r.owner}</Td>
-                  <Td><Badge tone={r.status}>{r.status}</Badge></Td>
-                  <Td className="tabular-nums">{r.updatedAt.slice(0, 10)}</Td>
-                  <Td>{r.actions.filter((a) => a.status !== 'Done').length}</Td>
-                </tr>
-              ))}
-              {sorted.length === 0 && (
-                <tr>
-                  <Td colSpan={7} className="text-center text-zinc-500 py-8">No results</Td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-      </div>
+      )}
 
       <AnimatePresence>
       {createOpen && (
@@ -191,14 +220,6 @@ export default function RcaPage() {
             }}
           />
         </Dialog>
-      )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-      {selected && (
-        <Drawer onClose={() => setDrawerId(null)}>
-          <RcaDrawer item={selected} onUpdate={onUpdate} onDelete={() => onDelete(selected.id)} onCloseRca={() => onCloseRca(selected.id)} />
-        </Drawer>
       )}
       </AnimatePresence>
     </div>
@@ -249,16 +270,7 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
   );
 }
 
-function Drawer({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <motion.div role="dialog" aria-modal="true" className="fixed inset-0 z-50" onKeyDown={(e) => e.key === 'Escape' && onClose()} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <motion.div initial={{ x: 320 }} animate={{ x: 0 }} exit={{ x: 320 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }} className="absolute right-0 top-0 h-full w-full max-w-xl bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 shadow-xl p-4 overflow-auto">
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
+// Drawer removed in favor of inline detail view
 
 function NewRcaForm({ onSubmit, onCancel }: { onSubmit: (draft: Omit<RcaItem, 'id' | 'createdAt' | 'updatedAt'>) => void; onCancel: () => void }) {
   const [draft, setDraft] = useState<Omit<RcaItem, 'id' | 'createdAt' | 'updatedAt'>>({
@@ -382,7 +394,7 @@ function NewRcaForm({ onSubmit, onCancel }: { onSubmit: (draft: Omit<RcaItem, 'i
   );
 }
 
-function RcaDrawer({ item, onUpdate, onDelete, onCloseRca }: { item: RcaItem; onUpdate: (r: RcaItem) => void; onDelete: () => void; onCloseRca: () => void }) {
+function RcaDetail({ item, onUpdate, onDelete, onCloseRca }: { item: RcaItem; onUpdate: (r: RcaItem) => void; onDelete: () => void; onCloseRca: () => void }) {
   const [tab, setTab] = useState<'overview' | 'findings' | 'actions' | 'timeline'>('overview');
   const [working, setWorking] = useState<RcaItem>(item);
   useEffect(() => setWorking(item), [item]);
