@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Send as SendIcon, Mail as MailIcon } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Send as SendIcon, Mail as MailIcon, X, Send } from 'lucide-react';
 import type { KnowledgeAssignment, KnowledgeSection, KnowledgeStatus, KnowledgeReviewStatus } from '../lib/knowledgeTypes';
 import { defaultDueDateForWeek, getIsoWeek, loadKnowledge, saveKnowledge, nextKnowledgeId, KNOWLEDGE_COMPANIES, KNOWLEDGE_ENGINEERS, KNOWLEDGE_SECTIONS, loadVisibleColumns, saveVisibleColumns, getWeekFocusCompanies, setWeekFocusCompanies } from '../lib/knowledgeStorage';
 
